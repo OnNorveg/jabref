@@ -909,7 +909,47 @@ public class CitationRelationsTab extends EntryEditorTab {
         }
         BooleanBinding booleanBind = Bindings.isEmpty(citationComponents.listView().getCheckModel().getCheckedItems());
         citationComponents.importButton().disableProperty().bind(booleanBind);
-        citationComponents.importButton().setOnMouseClicked(event -> importEntries(citationComponents.listView().getCheckModel().getCheckedItems(), citationComponents.searchType(), citationComponents.entry()));
+        citationComponents.importButton().setOnAction(_ ->
+                importEntries(citationComponents.listView().getCheckModel().getCheckedItems(), citationComponents.searchType(), citationComponents.entry()));
+
+        // Use EventFilter to find position of the mouse for double click
+        citationComponents.listView().addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getClickCount() == 2 && event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                javafx.scene.Node node = event.getPickResult().getIntersectedNode();
+                while (node != null && !(node instanceof javafx.scene.control.ListCell)) {
+                    node = node.getParent();
+                }
+                if (node instanceof javafx.scene.control.ListCell<?> cell && !cell.isEmpty()) {
+                    if (cell.getItem() instanceof CitationRelationItem item) {
+                        event.consume();
+
+                        importEntries(
+                                java.util.List.of(item),
+                                citationComponents.searchType(),
+                                citationComponents.entry()
+                        );
+
+                        // 2. РЕАКТИВНАЯ ЦЕПОЧКА (Chaining)
+                        // Находим текущий контекст базы данных через StateManager
+                        stateManager.activeTabProperty().get().ifPresent(tab -> {
+                            // Подписываемся на изменения в списке записей базы
+                            tab.getBibDatabaseContext().getDatabase().getEntries().addListener((javafx.collections.ListChangeListener<BibEntry>) change -> {
+                                while (change.next()) {
+                                    if (change.wasAdded() && change.getAddedSubList().contains(item.entry())) {
+                                        javafx.application.Platform.runLater(() -> {
+                                            // Передаем список, чтобы сбросить citationMergeMode
+                                            stateManager.setSelectedEntries(java.util.List.of(item.entry()));
+                                            stateManager.getEditorShowing().setValue(true);
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }
+            }
+        });
+
         showNodes(citationComponents.refreshButton(), citationComponents.importButton());
     }
 
