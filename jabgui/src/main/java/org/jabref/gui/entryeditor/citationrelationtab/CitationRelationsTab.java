@@ -486,8 +486,8 @@ public class CitationRelationsTab extends EntryEditorTab {
 
         // Create SplitPane to hold all nodes above
         SplitPane container = new SplitPane(citingVBox, citedByVBox);
-        styleFetchedListView(citedByListView, citingComponents, entry);
-        styleFetchedListView(citingListView, citedByComponents, entry);
+        styleFetchedListView(citedByListView, citedByComponents, entry);
+        styleFetchedListView(citingListView, citingComponents, entry);
 
         // switch to the tab will not trigger refresh from the remote
         searchForRelations(citingComponents, citedByComponents, false);
@@ -944,8 +944,7 @@ public class CitationRelationsTab extends EntryEditorTab {
         }
         BooleanBinding booleanBind = Bindings.isEmpty(citationComponents.listView().getCheckModel().getCheckedItems());
         citationComponents.importButton().disableProperty().bind(booleanBind);
-        citationComponents.importButton().setOnAction(_ ->
-                importEntries(citationComponents.listView().getCheckModel().getCheckedItems(), citationComponents.searchType(), citationComponents.entry()));
+        citationComponents.importButton().setOnMouseClicked(event -> importEntries(citationComponents.listView().getCheckModel().getCheckedItems(), citationComponents.searchType(), citationComponents.entry()));
         showNodes(citationComponents.refreshButton(), citationComponents.importButton());
     }
 
