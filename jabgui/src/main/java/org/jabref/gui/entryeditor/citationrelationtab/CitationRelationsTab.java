@@ -586,7 +586,7 @@ public class CitationRelationsTab extends EntryEditorTab {
                         }
                         return;
                     }
-                    if (!item.isLocal()){
+                    if (!item.isLocal()) {
                         // standard behavior with one click
                         listView.getCheckModel().toggleCheckState(item);
                     }
@@ -960,7 +960,6 @@ public class CitationRelationsTab extends EntryEditorTab {
         List<BibEntry> importedEntries = citationsRelationsTabViewModel.importEntries(entriesToImport, searchType, existingEntry);
         dialogService.notify(Localization.lang("%0 entry(s) imported", entriesToImport.size()));
         return importedEntries;
-
     }
 
     /// Function to open possible duplicate entries window to compare duplicate entries
