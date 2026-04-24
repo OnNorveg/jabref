@@ -586,7 +586,7 @@ public class CitationRelationsTab extends EntryEditorTab {
                             importEntries(List.of(item), citationComponents.searchType(), currentEntry);
 
                             // Focus
-                            // Use Platform.runLater, to make sure the database was updated
+                            // Use Platform.runLater to make sure the database was updated
                             javafx.application.Platform.runLater(() -> {
                                 stateManager.getActiveDatabase().ifPresent(databaseContext -> {
                                     BibDatabase database = databaseContext.getDatabase();
