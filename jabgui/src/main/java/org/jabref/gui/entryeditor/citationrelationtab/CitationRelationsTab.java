@@ -519,11 +519,6 @@ public class CitationRelationsTab extends EntryEditorTab {
                         jumpTo.setTooltip(new Tooltip(Localization.lang("Jump to entry in library")));
                         jumpTo.getStyleClass().add("addEntryButton");
                         jumpTo.setOnMouseClicked(_ -> jumpToEntry(entry));
-                        hContainer.setOnMouseClicked(event -> {
-                            if (event.getClickCount() == 2) {
-                                jumpToEntry(entry);
-                            }
-                        });
                         vContainer.getChildren().add(jumpTo);
 
                         Button compareButton = IconTheme.JabRefIcons.MERGE_ENTRIES.asButton();
