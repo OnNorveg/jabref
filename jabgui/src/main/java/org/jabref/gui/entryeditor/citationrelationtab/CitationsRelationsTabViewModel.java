@@ -67,7 +67,7 @@ public class CitationsRelationsTabViewModel {
         this.sciteAiFetcher = new SciteAiFetcher();
     }
 
-    public void importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
+    public List<BibEntry> importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
         BibDatabaseContext databaseContext = stateManager.getActiveDatabase().orElse(new BibDatabaseContext());
 
         List<BibEntry> entries = entriesToImport.stream()
@@ -93,6 +93,7 @@ public class CitationsRelationsTabViewModel {
             case CITED_BY ->
                     importCitedBy(entries, existingEntry, importHandler, generator, generateNewKeyOnImport);
         }
+        return entries;
     }
 
     private void importCites(List<BibEntry> entries, BibEntry existingEntry, ImportHandler importHandler, CitationKeyGenerator generator, boolean generateNewKeyOnImport) {

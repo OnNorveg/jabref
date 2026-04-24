@@ -12,6 +12,7 @@ import java.util.Optional;
 
 import javax.swing.undo.UndoManager;
 
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
@@ -577,35 +578,17 @@ public class CitationRelationsTab extends EntryEditorTab {
                             // Jump if item is already in the database
                             jumpToEntry(item);
                         } else {
-                            // if not, import it
-                            importEntries(List.of(item), citationComponents.searchType(), currentEntry);
-
-                            // Focus
-                            // Use Platform.runLater to make sure the database was updated
-                            javafx.application.Platform.runLater(() -> {
-                                stateManager.getActiveDatabase().ifPresent(databaseContext -> {
-                                    BibDatabase database = databaseContext.getDatabase();
-
-                                    // search imported entry to focus on it
-                                    Optional<BibEntry> addedEntry = duplicateCheck.containsDuplicate(
-                                            database,
-                                            item.entry(),
-                                            databaseContext.getMode()
-                                    );
-
-                                    addedEntry.ifPresent(entry -> {
-                                        // select and focus
-                                        stateManager.setSelectedEntries(List.of(entry));
-                                        stateManager.activeTabProperty().get().ifPresent(tab -> tab.showAndEdit(entry));
-                                    });
-                                });
+                            // if not, import and focus
+                            BibEntry addedEntry = importEntries(List.of(item), citationComponents.searchType(), currentEntry).getFirst();
+                            Platform.runLater(() -> {
+                                stateManager.activeTabProperty().get().ifPresent(tab -> tab.showAndEdit(addedEntry));
                             });
                         }
-                    } else {
-                        // standard behavior with onclick
-                        if (!item.isLocal()) {
-                            listView.getCheckModel().toggleCheckState(item);
-                        }
+                        return;
+                    }
+                    if (!item.isLocal()){
+                        // standard behavior with one click
+                        listView.getCheckModel().toggleCheckState(item);
                     }
                 })
                 .setOnDragDetected((item, event) -> handleDragDetected(listView, item, event))
@@ -966,7 +949,7 @@ public class CitationRelationsTab extends EntryEditorTab {
     /// Function to import selected entries to the database. Also writes the entries to import to the CITING/CITED field
     ///
     /// @param entriesToImport entries to import
-    private void importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
+    private List<BibEntry> importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
         if (citingTask != null) {
             citingTask.cancel(false);
         }
@@ -974,9 +957,10 @@ public class CitationRelationsTab extends EntryEditorTab {
             citedByTask.cancel(false);
         }
 
-        citationsRelationsTabViewModel.importEntries(entriesToImport, searchType, existingEntry);
-
+        List<BibEntry> importedEntries = citationsRelationsTabViewModel.importEntries(entriesToImport, searchType, existingEntry);
         dialogService.notify(Localization.lang("%0 entry(s) imported", entriesToImport.size()));
+        return importedEntries;
+
     }
 
     /// Function to open possible duplicate entries window to compare duplicate entries
