@@ -158,6 +158,14 @@ public class CitationRelationsTab extends EntryEditorTab {
                 fileUpdateMonitor,
                 taskExecutor
         );
+        //Listen for imported actions
+        citationsRelationsTabViewModel.lastImportedEntryProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                stateManager.activeTabProperty().get().ifPresent(tab ->
+                        tab.showAndEdit(newValue)
+                );
+            }
+        });
 
         this.progressIndicator = new ProgressIndicator();
         this.sciteResultsPane = new GridPane();
@@ -573,16 +581,14 @@ public class CitationRelationsTab extends EntryEditorTab {
                 .withOnMouseClickedEvent((item, event) -> {
                     if (event.getClickCount() == 2 && event.getButton() == MouseButton.PRIMARY) {
                         event.consume();
+                        listView.getCheckModel().check(item);
 
                         if (item.isLocal()) {
                             // Jump if item is already in the database
                             jumpToEntry(item);
                         } else {
-                            // if not, import and focus
-                            BibEntry addedEntry = importEntries(List.of(item), citationComponents.searchType(), currentEntry).getFirst();
-                            Platform.runLater(() -> {
-                                stateManager.activeTabProperty().get().ifPresent(tab -> tab.showAndEdit(addedEntry));
-                            });
+                            // if not, import
+                            importEntries(List.of(item), citationComponents.searchType(), currentEntry);
                         }
                         return;
                     }
@@ -949,7 +955,7 @@ public class CitationRelationsTab extends EntryEditorTab {
     /// Function to import selected entries to the database. Also writes the entries to import to the CITING/CITED field
     ///
     /// @param entriesToImport entries to import
-    private List<BibEntry> importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
+    private void importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
         if (citingTask != null) {
             citingTask.cancel(false);
         }
@@ -957,9 +963,8 @@ public class CitationRelationsTab extends EntryEditorTab {
             citedByTask.cancel(false);
         }
 
-        List<BibEntry> importedEntries = citationsRelationsTabViewModel.importEntries(entriesToImport, searchType, existingEntry);
+        citationsRelationsTabViewModel.importEntries(entriesToImport, searchType, existingEntry);
         dialogService.notify(Localization.lang("%0 entry(s) imported", entriesToImport.size()));
-        return importedEntries;
     }
 
     /// Function to open possible duplicate entries window to compare duplicate entries

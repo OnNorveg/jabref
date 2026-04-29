@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import javax.swing.undo.UndoManager;
 
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -49,6 +50,7 @@ public class CitationsRelationsTabViewModel {
 
     private final SciteAiFetcher sciteAiFetcher;
 
+    private final ObjectProperty<BibEntry> lastImportedEntry = new SimpleObjectProperty<>();
     private final ObjectProperty<SciteStatus> status;
     private final StringProperty searchError;
     private Optional<TalliesResponse> currentResult = Optional.empty();
@@ -67,7 +69,7 @@ public class CitationsRelationsTabViewModel {
         this.sciteAiFetcher = new SciteAiFetcher();
     }
 
-    public List<BibEntry> importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
+    public void importEntries(List<CitationRelationItem> entriesToImport, CitationFetcher.SearchType searchType, BibEntry existingEntry) {
         BibDatabaseContext databaseContext = stateManager.getActiveDatabase().orElse(new BibDatabaseContext());
 
         List<BibEntry> entries = entriesToImport.stream()
@@ -87,16 +89,19 @@ public class CitationsRelationsTabViewModel {
         CitationKeyGenerator generator = new CitationKeyGenerator(databaseContext, preferences.getCitationKeyPatternPreferences());
         boolean generateNewKeyOnImport = preferences.getImporterPreferences().generateNewKeyOnImportProperty().get();
 
-        switch (searchType) {
+        List<BibEntry> importedEntries = switch (searchType) {
             case CITES ->
                     importCites(entries, existingEntry, importHandler, generator, generateNewKeyOnImport);
             case CITED_BY ->
                     importCitedBy(entries, existingEntry, importHandler, generator, generateNewKeyOnImport);
+        };
+        if (!importedEntries.isEmpty()) {
+            lastImportedEntry.set(importedEntries.getFirst());
+            lastImportedEntry.set(null);
         }
-        return entries;
     }
 
-    private void importCites(List<BibEntry> entries, BibEntry existingEntry, ImportHandler importHandler, CitationKeyGenerator generator, boolean generateNewKeyOnImport) {
+    private List<BibEntry> importCites(List<BibEntry> entries, BibEntry existingEntry, ImportHandler importHandler, CitationKeyGenerator generator, boolean generateNewKeyOnImport) {
         SequencedSet<String> citeKeys = existingEntry.getCites();
 
         for (BibEntry entryToCite : entries) {
@@ -109,16 +114,17 @@ public class CitationsRelationsTabViewModel {
 
         existingEntry.setCites(citeKeys);
         importHandler.importEntries(entries);
+        return entries;
     }
 
     /// "cited by" is the opposite of "cites", but not stored in field `CITED_BY`, but in the `CITES` field of the citing entry.
     ///
     /// Therefore, some special handling is needed
-    private void importCitedBy(List<BibEntry> entries, BibEntry existingEntry, ImportHandler importHandler, CitationKeyGenerator generator, boolean generateNewKeyOnImport) {
+    private List<BibEntry> importCitedBy(List<BibEntry> entries, BibEntry existingEntry, ImportHandler importHandler, CitationKeyGenerator generator, boolean generateNewKeyOnImport) {
         if (existingEntry.getCitationKey().isEmpty()) {
             if (!generateNewKeyOnImport) {
                 dialogService.notify(Localization.lang("No citation key for %0", existingEntry.getAuthorTitleYear()));
-                return;
+                return List.of();
             }
             existingEntry.setCitationKey(generator.generateKey(existingEntry));
         }
@@ -131,6 +137,7 @@ public class CitationsRelationsTabViewModel {
         }
 
         importHandler.importEntries(entries);
+        return entries;
     }
 
     public boolean shouldShow() {
@@ -204,5 +211,9 @@ public class CitationsRelationsTabViewModel {
 
     public Optional<TalliesResponse> getCurrentResult() {
         return currentResult;
+    }
+
+    public ReadOnlyObjectProperty<BibEntry> lastImportedEntryProperty() {
+        return lastImportedEntry;
     }
 }
