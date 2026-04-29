@@ -12,7 +12,6 @@ import java.util.Optional;
 
 import javax.swing.undo.UndoManager;
 
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
@@ -158,7 +157,7 @@ public class CitationRelationsTab extends EntryEditorTab {
                 fileUpdateMonitor,
                 taskExecutor
         );
-        //Listen for imported actions
+        // Listen for imported actions
         citationsRelationsTabViewModel.lastImportedEntryProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
                 stateManager.activeTabProperty().get().ifPresent(tab ->
